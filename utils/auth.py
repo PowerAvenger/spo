@@ -9,10 +9,10 @@ def autenticar_google_sheets():
     # Rutas y configuraciones
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
     #CREDENTIALS_FILE = 'spo25-442409-dbdb74d35fae.json'  
-    CREDENTIALS_FILE = st.secrets['GOOGLE_SHEETS_CREDENTIALS']
+    CREDENTIALS_CONTENT = st.secrets['GOOGLE_SHEETS_CREDENTIALS']
     # Autenticación
     #credentials = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
-    credentials = Credentials.from_service_account_info(CREDENTIALS_FILE, scopes=SCOPES)
+    credentials = Credentials.from_service_account_info(CREDENTIALS_CONTENT, scopes=SCOPES)
     st.session_state.client = gspread.authorize(credentials)
 
     # Acceso a la hoja de Google Sheets
