@@ -9,7 +9,7 @@ import base64
 #configuramos la web y cabecera
 st.set_page_config(
     page_title="superpoweromie2025",
-    page_icon=":bulb:",
+    page_icon="⚡",
     layout='centered',
     #initial_sidebar_state='collapsed'
 )
