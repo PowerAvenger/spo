@@ -1,0 +1,8 @@
+pandas
+plotly.express
+streamlit
+gspread
+google-auth
+selenium
+streamlit_cookies_manager
+requests
