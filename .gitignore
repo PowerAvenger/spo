@@ -1,1 +1,5 @@
 spo25-442409-dbdb74d35fae.json
+.streamlit/secrets.toml
+# Python cache
+__pycache__/
+*.pyc
