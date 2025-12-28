@@ -1163,7 +1163,7 @@ def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro):
         Ya está abierta la veda para que puedas registrar tu predicción en la #minipoweromie {mes}!!
 
         Accede con tu nick en:  
-        🔗 https://spo2425-josevidal.streamlit.app/
+        🔗 https://spo-epowerapp.streamlit.app/
 
         ¡¡Gracias por tu participación y... Suerte!!
 
@@ -1178,7 +1178,7 @@ def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro):
         Puedes modificarla tantas veces como quieras.
 
         Accede con tu nick en:  
-        🔗 https://spo2425-josevidal.streamlit.app/
+        🔗 https://spo-epowerapp.streamlit.app/
 
         ¡¡Gracias por tu participación y... suerte!!
 
@@ -1193,7 +1193,7 @@ def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro):
         Si ya tienes registrada la predicción, todavía puedes modificarla hasta esa hora.
 
         Accede con tu nick en:  
-        🔗 https://spo2425-josevidal.streamlit.app/
+        🔗 https://spo-epowerapp.streamlit.app/
 
         ¡¡Gracias por tu participación y... suerte!!
 
