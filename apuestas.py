@@ -118,7 +118,7 @@ def obtener_omie_diario(): #ATENCIÓN: SE CARGAN LOS DATOS DESDE ESIOS HASTA QUE
     
 # los resultados mensuales se usan en la clasificación anual. Se selecciona el año de la spo
 # año_spo son las dos últimas cifras del año, 24 ó 25
-def resultados_mensuales(df_omie_diario, año_spo):
+def resultados_mensuales(df_omie_diario, año_spo, combo_omip):
 
     meses_personalizados = [
         "ene-24", "feb-24", "mar-24", "abr-24", "may-24", "jun-24",
@@ -140,8 +140,8 @@ def resultados_mensuales(df_omie_diario, año_spo):
     df_omie_mensual = df_omie_mensual.sort_values('mes_apuesta')
     print('df_omie_mensual')
     print(df_omie_mensual)
-    print(df_omie_mensual.dtypes)
-    print(df_omie_mensual.head())
+    #print(df_omie_mensual.dtypes)
+    #print(df_omie_mensual.head())
 
     #usado para el año seleccionado de la superpoweromie
     df_omie_mensual_spo = df_omie_mensual.copy()
@@ -150,6 +150,10 @@ def resultados_mensuales(df_omie_diario, año_spo):
     # creamos un df tipo lista con todas las apuestas de las minipowers
     df_ranking_mensual = st.session_state.df_apuestas.copy()
     df_ranking_mensual = pd.merge(st.session_state.df_apuestas, df_omie_mensual, on = 'mes_apuesta', how = 'inner')
+
+
+    
+
     
     #ranking mensual con todos los meses desde ene-24 hasta la actual minipower
     df_ranking_mensual['desvio'] = df_ranking_mensual['apuesta'] - df_ranking_mensual['omie']
@@ -161,6 +165,9 @@ def resultados_mensuales(df_omie_diario, año_spo):
         df_ranking_mensual_nombre = df_ranking_mensual_nombre.drop(columns = ['nombre', 'fecha_apuesta'])
        
     df_ranking_mensual = df_ranking_mensual.drop(columns=['omie', 'fecha_apuesta'])
+
+    print('df ranking mensual')
+    print(df_ranking_mensual)
        
     #creamos un df filas = meses apuesta tipo ene-24 y en las columnas 1, 2 y 3 podio ganador
     df_ranking_mensual_podio = df_ranking_mensual[df_ranking_mensual['posicion'].isin([1,2,3])].pivot(
@@ -192,6 +199,12 @@ def resultados_mensuales(df_omie_diario, año_spo):
     print('df_acum_desvio')
     #print (df_acum_desvio)
 
+    #df usado para los payoff-------------------------------------------------------------------------------------
+    df_payoff = df_omie_mensual_spo.copy()
+    df_payoff['omip'] = df_payoff['mes_apuesta'].map(combo_omip)
+    df_payoff = pd.merge(st.session_state.df_apuestas, df_payoff, on = 'mes_apuesta', how = 'inner')
+    df_payoff = df_payoff.drop(columns=['fecha_apuesta'])
+
     horas_meses = {
         'ene-24': 744, 'feb-24': 696, 'mar-24': 744, 'abr-24': 720,
         'may-24': 744, 'jun-24': 720, 'jul-24': 744, 'ago-24': 744,
@@ -204,36 +217,66 @@ def resultados_mensuales(df_omie_diario, año_spo):
         'ene-26': 744, 'feb-26': 672, 'mar-26': 744, 'abr-26': 720,
         'may-26': 744, 'jun-26': 720, 'jul-26': 744, 'ago-26': 744,
         'sep-26': 720, 'oct-26': 744, 'nov-26': 720, 'dic-26': 744
-    }
+        }
     
-    # tabla con los PAYOFFS
-    df_acum_desvio_horas = df_acum_desvio.copy()
-    for col in df_acum_desvio_horas.columns:
-        if col in horas_meses:
-            df_acum_desvio_horas[col] = (df_acum_desvio_horas[col] * horas_meses[col]).round(2)
-            
-    df_acum_desvio_horas['payoff'] = df_acum_desvio_horas.drop(columns = ['contar'], errors = 'ignore').sum(axis = 1)
-    print ('df_acum_desvio_horas')
-    #print (df_acum_desvio_horas)
+    df_payoff['horas_mes'] = df_payoff['mes_apuesta'].map(horas_meses)
+    df_payoff['coste_omie'] = df_payoff['horas_mes'] * df_payoff['omie']
+    df_payoff['coste_omip'] = df_payoff['horas_mes'] * df_payoff['omip']
 
-    df_acum_desvio_horas_format = df_acum_desvio_horas.copy()
-    columnas_a_formatear = [col for col in df_acum_desvio_horas_format.columns if col in horas_meses or col == "payoff"]
-    df_acum_desvio_horas_format[columnas_a_formatear] = df_acum_desvio_horas_format[columnas_a_formatear].applymap(lambda x: f"{x:,.0f}".replace(",", "."))
+    df_payoff['payoff_consumidor'] = df_payoff['coste_omie'] - df_payoff['coste_omip']
+
+    df_payoff['payoff_jugador'] = np.where(df_payoff['apuesta'] < df_payoff['omip'],0, df_payoff['payoff_consumidor'])
+
+    meses_presentes = df_payoff['mes_apuesta'].unique().tolist()
+    meses_ordenados = [m for m in meses_personalizados if m in meses_presentes]   
+    df_payoff['mes_apuesta'] = pd.Categorical(df_payoff['mes_apuesta'], categories=meses_ordenados, ordered=True)
+
+    print('df payoff')
+    print(df_payoff)
+
+
+
+    df_payoff_mensual = (
+        df_payoff
+        .pivot_table(
+            index='nombre',
+            columns='mes_apuesta',
+            values='payoff_jugador',
+            aggfunc='sum',      # por si hubiera más de una apuesta por mes
+            fill_value=0
+        )
+    )
+
+    #meses_unicos = df_payoff['mes_apuesta'].unique().tolist()
+    #orden_meses = sorted(df_payoff['mes_apuesta'].unique())
+    #df_payoff_mensual = df_payoff_mensual[orden_meses]
+    df_payoff_mensual['Total'] = df_payoff_mensual.sum(axis=1)
+
+    print('df payoff mensual')
+    print(df_payoff_mensual)
+
+    df_payoff_mensual_format = df_payoff_mensual.copy()
+    columnas_a_formatear = [col for col in df_payoff_mensual_format.columns if col in horas_meses or col == "payoff_jugador" or col=='Total']
+    df_payoff_mensual_format[columnas_a_formatear] = df_payoff_mensual_format[columnas_a_formatear].applymap(lambda x: f"{x:,.0f}".replace(",", "."))
 
     def color_texto(val):
-        if isinstance(val, str):  # Verificar si el valor ya está formateado como string
-            num = float(val.replace(".", ""))  # Convertirlo de nuevo a número
-            color = "red" if num > 0 else "lightgreen"
-            return f"color: {color}; font-weight: bold;"
+        if isinstance(val, str):
+            num = float(val.replace(".", ""))
+            if num > 0:
+                return "color: green; font-weight: bold;"
+            elif num < 0:
+                return "color: red; font-weight: bold;"
+            else:
+                return "color: black;"
         return ""
 
     # Aplicar formato de colores a las columnas de meses y payoff
-    df_acum_desvio_horas_format = df_acum_desvio_horas_format.style.applymap(color_texto, subset=columnas_a_formatear)
+    df_payoff_mensual_format = df_payoff_mensual_format.style.applymap(color_texto, subset=columnas_a_formatear)
 
-    print ('df_acum_desvio_horas_format')
-    #print (df_acum_desvio_horas_format)
+    print ('df_payoff_mensual_format')
+    print (df_payoff_mensual_format)
    
-    return df_ranking_mensual_spo, df_acum_porc, df_omie_mensual, df_omie_mensual_spo, df_ranking_mensual_podio, df_ranking_mensual_nombre, df_acum_desvio_horas_format
+    return df_ranking_mensual_spo, df_acum_porc, df_omie_mensual, df_omie_mensual_spo, df_ranking_mensual_podio, df_ranking_mensual_nombre, df_payoff_mensual_format
 
 
 def obtener_omie_omip(df_omie_mensual, combo_omip):

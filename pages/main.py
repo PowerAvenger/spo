@@ -294,8 +294,10 @@ with tab3:
         st.toggle('Prueba con los 12 meses', key='doce_meses')
         #nos quedamos con las dos últimas cifras del año, rollo 24 ó 25
         sufijo_año_spo = str(año_spo_selected)[-2:]
+    
 
-    df_ranking_mensual, df_acum_porc, df_omie_mensual, df_omie_mensual_total, df_ranking_mensual_podio, df_ranking_mensual, df_payoffs = resultados_mensuales(df_omie_diario, sufijo_año_spo)
+    #df_omie_omip = obtener_omie_omip(df_omie_mensual, combo_omip)
+    df_ranking_mensual, df_acum_porc, df_omie_mensual, df_omie_mensual_total, df_ranking_mensual_podio, df_ranking_mensual, df_payoffs = resultados_mensuales(df_omie_diario, sufijo_año_spo, combo_omip)
 
     
     df_porra_desvios_porc, lista_starpowers, num_starpowers, ultimo_mes_porra, num_meses_porra = obtener_clasificacion_porc(df_acum_porc, sufijo_año_spo)
@@ -350,7 +352,7 @@ with tab3:
     st.plotly_chart(graf_omie_omip)
 
     st.subheader('Tabla de payoffs', divider = 'rainbow')
-    st.info(('Mira la tabla de abajo. Aquí tienes tus ganancias o pérdidas en función de tus desvíos frente a OMIE. '
+    st.info(('Mira la tabla de abajo. Aquí tienes tus ganancias o pérdidas en función de tus coberturas OMIP. '
              '**:red[Rojo]** significa pérdidas y **:green[Verde]** son ganancias. '
              'En euros.')
              , icon = "ℹ️")
