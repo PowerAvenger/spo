@@ -263,7 +263,7 @@ def resultados_mensuales(df_omie_diario, año_spo, combo_omip):
         if isinstance(val, str):
             num = float(val.replace(".", ""))
             if num > 0:
-                return "color: green; font-weight: bold;"
+                return "color: lightgreen; font-weight: bold;"
             elif num < 0:
                 return "color: red; font-weight: bold;"
             else:
@@ -1263,7 +1263,7 @@ def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro):
 #flag_envio = True
 flag_envio = False
 mes = 'ene-26'
-cuerpo = 'cuerpo2'
+cuerpo = 'cuerpo3'
 ultimo_dia_registro = 'martes 30 de diciembre'
 
 if flag_envio:
