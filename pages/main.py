@@ -297,7 +297,7 @@ with tab3:
     
 
     #df_omie_omip = obtener_omie_omip(df_omie_mensual, combo_omip)
-    df_ranking_mensual, df_acum_porc, df_omie_mensual, df_omie_mensual_total, df_ranking_mensual_podio, df_ranking_mensual, df_payoffs = resultados_mensuales(df_omie_diario, sufijo_año_spo, combo_omip)
+    df_ranking_mensual, df_acum_porc, df_omie_mensual_total, df_omie_mensual, df_ranking_mensual_podio, df_ranking_mensual, df_payoffs = resultados_mensuales(df_omie_diario, sufijo_año_spo, combo_omip)
 
     
     df_porra_desvios_porc, lista_starpowers, num_starpowers, ultimo_mes_porra, num_meses_porra = obtener_clasificacion_porc(df_acum_porc, sufijo_año_spo)
@@ -418,7 +418,8 @@ with tab5:
     st.info('En este apartado encontrarás información sobre OMIP y su evolución',icon="ℹ️")
     # seleccion del mes a visualiar la evolución de OMIP
     entrega_seleccion = st.selectbox('Selecciona el mes a visualizar', options = li_entregas_2425, index = index_mes_porra)
-    #st.write(df_FTB_mensual)
+    
+    print(f'Mes entrega seleccionado para gráfico OMIP: {entrega_seleccion}')
 
     num_mes_entrega_seleccion = di_mesaño[entrega_seleccion]
     #st.write(df_omie_mensual)

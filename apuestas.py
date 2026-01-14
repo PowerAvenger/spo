@@ -92,7 +92,7 @@ def obtener_omie_horario_sheets():
     return df_omie_diario
 
 @st.cache_data
-def obtener_omie_diario(): #ATENCIÓN: SE CARGAN LOS DATOS DESDE ESIOS HASTA QUE ARREGLE LOS HISTORICOS DE TELEMINDEX
+def obtener_omie_diario(): 
 
     try:
         with st.spinner('Cargando datos desde históricos...'):
@@ -999,6 +999,7 @@ def obtener_meff_mensual():
 def obtener_datos_mes_entrega(df_FTB_mensual, mes_entrega, entrega, df_omie_mensual):
     ## ESTE DATAFRAME LO USAMOS PARA OBTENER UNA GRÁFICA DE OMIP PARA EL MES DE ENTREGA (MINIPORRA) DESDE 6 MESES ATRÁS
     #mes_entrega viene en formato entero, como un índice que indica la posicón del mes de entrega seleccionado
+
     #filtramos hasta el mes anterior al de entrega
     df_FTB_mensual_entrega_menos1 = df_FTB_mensual[(df_FTB_mensual['Mes_Entrega']==mes_entrega) & (df_FTB_mensual['Mes_Fecha']<df_FTB_mensual['Mes_Entrega'])]
     #print(df_FTB_mensual_entrega_menos1)
@@ -1013,15 +1014,23 @@ def obtener_datos_mes_entrega(df_FTB_mensual, mes_entrega, entrega, df_omie_mens
     omip_entrega=round(df_FTB_mensual_entrega_last3['Precio'].mean(),2)
     omip_entrega_menos1=round(df_FTB_mensual_entrega_last3_menos1['Precio'].mean(),2)
 
+    #print('df_omie_mensual')
+    #print(df_omie_mensual)
+
     #valor dinamico de omie para el mes de la miniporra (mes de entrega)
     df_omie_entrega=df_omie_mensual[df_omie_mensual['mes_apuesta']==entrega]['omie']
+
+    #print('df_omie_entrega')
+    #print(df_omie_entrega)
+
+
     if not df_omie_entrega.empty:
         omie_entrega=df_omie_entrega.iloc[0]
     else:
         omie_entrega=None
     
     
-
+    #print(f'omie_entrega: {omie_entrega}')
 
 
     # PRIMER GRÁFICO DE DATOS. EVOLUCIÓN DE OMIP vs OMIE MEDIO
@@ -1135,12 +1144,14 @@ def obtener_datos_mes_entrega(df_FTB_mensual, mes_entrega, entrega, df_omie_mens
     graf_futuros.add_trace(
         go.Scatter(
             x=df_FTB_mensual_entrega['Fecha'],
-            y=[omip_entrega]*len(df_FTB_mensual_entrega), #['Precio'],
+            #y=[omip_entrega]*len(df_FTB_mensual_entrega), 
+            #x=df_FTB_mensual_entrega_last3_menos1['Fecha'],
+            y=[omip_entrega_menos1]*len(df_FTB_mensual_entrega), 
             #fill='tozeroy',
             mode='lines',
             fillcolor='rgba(255, 150, 150, 0.2)',
             line=dict(dash='dot', color='sienna'),
-            name='omip media'
+            name='omip media mes anterior'
         )
     )
         
@@ -1185,7 +1196,9 @@ def obtener_datos_mes_anterior(df_FTB_mensual):
     print(df_FTB_mensual_mes_anterior_last3_ordered)
     return df_FTB_mensual_mes_anterior_last3_ordered
 
-# Código para enviar mails de notificación a los usuarios
+
+
+# Código para enviar mails de notificación a los usuarios++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro):
     
     remitente = "jovidal71@gmail.com"
