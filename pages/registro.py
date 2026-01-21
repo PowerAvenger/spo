@@ -198,7 +198,7 @@ if st.session_state.flag_nombre and st.session_state.flag_nick and st.session_st
                     time.sleep(3)
                     st.session_state.clear
                     #st.switch_page('pages/main.py')
-                    st.switch_page('sp25.py')
+                    st.switch_page('spo.py')
                     st.rerun()
                 else:
                     mensaje_codigo.error('Código incorrecto. Por favor, introdúcelo de nuevo.')
