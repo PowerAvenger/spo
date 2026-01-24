@@ -6,4 +6,4 @@ google-auth
 selenium
 streamlit_cookies_manager
 requests
-altair<5
+#altair<5
