@@ -123,7 +123,6 @@ if st.session_state.animar:
 #    st.session_state.meff=False
 
 if "nombre" not in st.session_state:
-    st.switch_page("spo.py")
     #st.switch_page("spo.py")
     st.stop()
 else:
