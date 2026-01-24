@@ -8,22 +8,11 @@ import streamlit as st
 def autenticar_google_sheets():
     # Rutas y configuraciones
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-    #CREDENTIALS_FILE = 'spo25-442409-dbdb74d35fae.json'  
     CREDENTIALS_CONTENT = st.secrets['GOOGLE_SHEETS_CREDENTIALS']
     # Autenticación
-    #credentials = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
     credentials = Credentials.from_service_account_info(CREDENTIALS_CONTENT, scopes=SCOPES)
     st.session_state.client = gspread.authorize(credentials)
 
-    # Acceso a la hoja de Google Sheets
-    #SPREADSHEET_ID = '1kvtwjmvUhNjHlnA6nS9BI0ExwC8czTina-b4zBLcWVM'  # Cambia esto por el ID de tu archivo (en la URL después de /d/)
-    #sheet = client.open_by_key(SPREADSHEET_ID)
-
-    # Acceder a una hoja específica dentro del archivo
-    #worksheet = sheet.sheet1  # Primera hoja
-    #data = worksheet.get_all_records()
-    #df_usuarios=pd.DataFrame(data)
-    #return worksheet, df_usuarios
     return st.session_state.client
 
 
