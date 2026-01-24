@@ -73,7 +73,7 @@ def generar_menu():
 #ELEMENTOS DEL LAYOUT----------------------------------------------------------------------------------------
 st.header('Página de registro')
 if st.button('Salir al menu de login'):
-    st.switch_page('sp25.py')
+    st.switch_page('spo.py')
 a = st.form('registro')
 zona_boton_codigo = st.empty()
 b = st.form('Introduce el código recibido')
