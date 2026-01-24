@@ -7,4 +7,3 @@ selenium
 streamlit_cookies_manager
 requests
 altair<5
-python-3.11
