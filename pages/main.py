@@ -124,6 +124,8 @@ if st.session_state.animar:
 
 if "nombre" not in st.session_state:
     st.switch_page("spo.py")
+    #st.switch_page("spo.py")
+    st.stop()
 else:
     try:
         df_ranking, df_ranking_styled, virtual_mvp, df_ranking_powerrange, df_omie_total_mes, media_omie = resultados(df_omie_mes_apuesta)
