@@ -29,7 +29,8 @@ if 'client' not in st.session_state:
 
 st.header('Página de login')
 
-#if 'nombre' not in st.session_state:
+if st.button('Salir al menu de login'):
+    st.switch_page('spo.py')
 if st.session_state.nombre is None:
     with st.form('Login'):
         
