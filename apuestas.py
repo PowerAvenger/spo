@@ -1275,9 +1275,9 @@ def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro):
 #cambiar a True manualmente de momento para enviar emails
 #flag_envio = True
 flag_envio = False
-mes = 'ene-26'
-cuerpo = 'cuerpo3'
-ultimo_dia_registro = 'martes 30 de diciembre'
+mes = 'feb-26'
+cuerpo = 'cuerpo1'
+ultimo_dia_registro = 'viernes 30 de enero'
 
 if flag_envio:
     spreadsheet_id_users = st.secrets['ID_DRIVE_USERS']
