@@ -290,7 +290,7 @@ with tab3:
         if 'doce_meses' not in st.session_state:
             st.session_state.doce_meses = False
 
-        año_spo_selected = st.selectbox('Selecciona el año', options=['2025','2024'])
+        año_spo_selected = st.selectbox('Selecciona el año', options=['2026','2025','2024'])
         #if año_spo_selected == '2024':
         st.toggle('Prueba con los 12 meses', key='doce_meses')
         #nos quedamos con las dos últimas cifras del año, rollo 24 ó 25
@@ -377,6 +377,11 @@ with tab4:
     df_podios_25 = df_ranking_mensual_podio[df_ranking_mensual_podio['mes_apuesta'].str.contains('25')]
     df_podios_25 = df_podios_25.style.applymap(resaltar_nombre, subset=[f"{iconos[1]} 1°", f"{iconos[2]} 2°", f"{iconos[3]} 3°"])
 
+    df_podios_26 = df_ranking_mensual_podio[df_ranking_mensual_podio['mes_apuesta'].str.contains('26')]
+    df_podios_26 = df_podios_26.style.applymap(resaltar_nombre, subset=[f"{iconos[1]} 1°", f"{iconos[2]} 2°", f"{iconos[3]} 3°"])
+
+    st.subheader('Podios de la SUPER POWER OMIE 2026')
+    st.dataframe(df_podios_26, use_container_width=True, hide_index=True, height=470)
     st.subheader('Podios de la SUPER POWER OMIE 2025')
     st.dataframe(df_podios_25, use_container_width=True, hide_index=True, height=470)
     st.subheader('Podios de la SUPER POWER OMIE 2024')
