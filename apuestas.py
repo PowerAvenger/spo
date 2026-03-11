@@ -1190,9 +1190,10 @@ def obtener_datos_mes_anterior(df_FTB_mensual):
     #lista de meses
     months_order = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
     #convertimos 'Entrega' en categoría para poder ordenar
-    df_FTB_mensual_mes_anterior_last3['Entrega'] = pd.Categorical(df_FTB_mensual_mes_anterior_last3['Entrega'], categories=[f'{m}-{y}' for y in ['23', '24', '25'] for m in months_order], ordered=True)
+    df_FTB_mensual_mes_anterior_last3['Entrega'] = pd.Categorical(df_FTB_mensual_mes_anterior_last3['Entrega'], categories=[f'{m}-{y}' for y in ['23', '24', '25','26'] for m in months_order], ordered=True)
     #esta es la lista ordenada con los meses de entrega y la media de MEFF de los últimos tres dias
     df_FTB_mensual_mes_anterior_last3_ordered = df_FTB_mensual_mes_anterior_last3.sort_values('Entrega').reset_index(drop=True)
+    print('3 últimos valores OMIP mes anterior')
     print(df_FTB_mensual_mes_anterior_last3_ordered)
     return df_FTB_mensual_mes_anterior_last3_ordered
 
