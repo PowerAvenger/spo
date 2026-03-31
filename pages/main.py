@@ -476,8 +476,8 @@ with tab5:
 
 # APUESTAS --------------------------------------------------------------------------------------------------------------------------------
 #provisional
-#mes_apuesta = None
-mes_apuesta = 'abr-26'
+mes_apuesta = None
+#mes_apuesta = 'may-26'
 
 
 with tab6:
