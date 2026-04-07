@@ -1,13 +1,15 @@
 import streamlit as st
 import pandas as pd
 from apuestas import (
+    autenticar_google_sheets, acceder_google_sheets,
     omie_diario, obtener_omie_diario, 
     filtrar_mes_apuesta, resultados, omie_mes_apuesta, virtual, resultados_mensuales, obtener_clasificacion_porc, 
     grafico_clasificacion, obtener_comparativa, grafico_comparativo, obtener_omie_omip, grafico_omie_omip, obtener_apuestas,
     obtener_meff_mensual, obtener_datos_mes_entrega, obtener_datos_mes_anterior)
 import time
 from datetime import datetime
-from utils.auth import acceder_google_sheets, autenticar_google_sheets
+#from utils.auth import acceder_google_sheets, autenticar_google_sheets
+#from utils.auth import acceder_google_sheets, autenticar_google_sheets
 import base64
 
 if "cache_cleared" not in st.session_state:
@@ -62,6 +64,7 @@ def obtener_apuestas_mes(mes_apuesta):
 
     return df_apuesta_user, df_apuestas_user, df_mes_apuesta #, ws, df_apuestas
 
+#df_omie_diario, meses_miniporra = obtener_omie_diario()
 df_omie_diario, meses_miniporra = obtener_omie_diario()
 meses_miniporra_invertidos = list(reversed(meses_miniporra))
 #print(meses_miniporra_invertidos)

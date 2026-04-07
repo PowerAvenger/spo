@@ -4,12 +4,38 @@ import requests
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
-from utils.auth import acceder_google_sheets, acceder_google_sheets_parcial
+#from utils.auth import acceder_google_sheets, acceder_google_sheets_parcial
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib
 import locale
 
+import gspread
+from google.oauth2.service_account import Credentials
+
+
+#ESTE CÓDIGO ES PARA PERMITIR EL ACCESO A LOS GOOGLE SHEETS DEL DRIVE
+def autenticar_google_sheets():
+    # Rutas y configuraciones
+    SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+    CREDENTIALS_CONTENT = st.secrets['GOOGLE_SHEETS_CREDENTIALS']
+    # Autenticación
+    credentials = Credentials.from_service_account_info(CREDENTIALS_CONTENT, scopes=SCOPES)
+    st.session_state.client = gspread.authorize(credentials)
+
+    return st.session_state.client
+
+#ESTE CÓDIGO ES PARA ACCEDER A LOS DIFERENTES SHEETS - TODO EL CONTENIDO
+def acceder_google_sheets(spreadsheet_id): 
+    
+    sheet = st.session_state.client.open_by_key(spreadsheet_id)
+    
+    # Primera hoja por defecto
+    worksheet = sheet.sheet1  
+    # Obtener los datos como DataFrame
+    data = worksheet.get_all_records()
+    df = pd.DataFrame(data)
+    return worksheet, df
 
 # OBTENEMOS DATOS DE LAS APUESTAS DEL GOOGLE SHEETS
 # Retornamos el listado de apuestas y lista de participantes para el mes seleccionado por el usuario
@@ -34,6 +60,8 @@ def obtener_apuestas():
     return  df_apuestas_select, star_powers 
 
 
+
+# SOLO USADO SI HAY PROBLEMAS DE ACCESO AL JSON DE HISTÓRICOS
 @st.cache_data
 def download_esios_id(id, fecha_ini, fecha_fin, agrupacion):
         
@@ -76,8 +104,74 @@ def download_esios_id(id, fecha_ini, fecha_fin, agrupacion):
     print('df_spot')
     print(df_spot)
     
-    return df_spot 
+    return df_spot
 
+
+
+
+
+
+
+from googleapiclient.discovery import build
+import io
+from googleapiclient.http import MediaIoBaseDownload
+import json
+# LEEMOS JSON CON SPOT Y SSAA DEL DRIVE
+@st.cache_data
+def leer_json(file_id, _creds_dict):
+    SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+    creds = Credentials.from_service_account_info(_creds_dict, scopes=SCOPES)
+    service = build('drive', 'v3', credentials=creds)
+
+    request = service.files().get_media(fileId=file_id)
+    buffer = io.BytesIO()
+    downloader = MediaIoBaseDownload(buffer, request)
+
+    done = False
+    while not done:
+        status, done = downloader.next_chunk()
+    buffer.seek(0)
+    datos_json = json.load(buffer)
+    
+    # Convertir a DataFrame
+    datos = pd.DataFrame(datos_json)
+    datos['datetime'] = pd.to_datetime(datos['datetime'], utc=True)
+    datos['datetime'] = datos['datetime'].dt.tz_convert('Europe/Madrid').dt.tz_localize(None)
+    
+    if 'id' in datos.columns and 'name' in datos.columns:
+        # Datos de SSAA
+        datos = datos[['datetime', 'id', 'value', 'name']]
+        datos = datos.groupby('datetime', as_index=False)['value'].sum()
+    else:
+        # Datos tipo spot
+        datos = datos[['datetime', 'value']]
+        
+    datos['fecha']=datos['datetime'].dt.date
+    datos['hora']=datos['datetime'].dt.hour
+    datos['dia']=datos['datetime'].dt.day
+    datos['mes']=datos['datetime'].dt.month
+    datos['año']=datos['datetime'].dt.year
+    datos.set_index('datetime', inplace=True)
+
+    fecha_ini = datos['fecha'].min()
+    fecha_fin = datos['fecha'].max()
+
+
+    df_omie_diario = datos.groupby('fecha').agg({
+        'value':'mean',
+        'año': 'first',
+        'mes' : 'first'
+    }).rename(columns={'value': 'omie'}).reset_index()
+    
+
+    df_omie_diario = df_omie_diario[df_omie_diario['año'] >= 2024]
+    df_omie_diario['fecha'] = pd.to_datetime(df_omie_diario['fecha'])
+    print('df omie diario a partir del json')
+    print(df_omie_diario)
+    
+    return df_omie_diario #, fecha_ini, fecha_fin
+
+# NO USADO!!!!!!!!!!!!!
 @st.cache_data
 def obtener_omie_horario_sheets():
     spreadsheet_id_telemindex = st.secrets['ID_DRIVE_TELEMINDEX']
@@ -96,7 +190,10 @@ def obtener_omie_diario():
 
     try:
         with st.spinner('Cargando datos desde históricos...'):
-            df_omie_diario = obtener_omie_horario_sheets()
+            #df_omie_diario = obtener_omie_horario_sheets()
+            FILE_ID = st.secrets['FILE_ID_SPOT']
+            CREDENTIALS = st.secrets['GOOGLE_SHEETS_CREDENTIALS']
+            df_omie_diario = leer_json(FILE_ID, CREDENTIALS)
     except:
         
         with st.spinner('Cargando datos desde esios REE...'):
@@ -107,7 +204,8 @@ def obtener_omie_diario():
     meses = {1: 'ene', 2: 'feb', 3: 'mar', 4: 'abr', 5: 'may', 6: 'jun', 7: 'jul', 8: 'ago', 9: 'sep', 10: 'oct', 11: 'nov', 12: 'dic'}
     df_omie_diario['Entrega'] = df_omie_diario['mes'].map(meses)
     df_omie_diario['Entrega'] = df_omie_diario['Entrega'] + '-' + df_omie_diario['año'].astype(str).str[-2:]
-    df_omie_diario['dia'] = df_omie_diario['datetime'].dt.day
+    df_omie_diario['dia'] = df_omie_diario['fecha'].dt.day
+    df_omie_diario['dia'] = df_omie_diario['fecha'].dt.day
 
     meses_miniporra = df_omie_diario['Entrega'].unique().tolist()
     print('df_omie_diario')
@@ -596,7 +694,8 @@ def filtrar_mes_apuesta(df_omie_diario):
     # Creamos una nueva columna 'omie_media' con la media de omie según avanzan los dias
     df_omie_mes_apuesta['omie_media'] = round(df_omie_mes_apuesta['omie'].expanding().mean(), 2)
     # Obtenemos la fecha del último registro de omie
-    ultimo_registro_omie = df_omie_mes_apuesta['datetime'].iloc[-1].date()
+    #ultimo_registro_omie = df_omie_mes_apuesta['datetime'].iloc[-1].date()
+    ultimo_registro_omie = df_omie_mes_apuesta['fecha'].iloc[-1].date()
 
     print('df_omie_mes_apuesta')
     print(df_omie_mes_apuesta)
@@ -685,15 +784,15 @@ def resultados(df_omie_mes_apuesta): #, dia_seleccion):
     
 
     
-    fecha_ini_entrega=df_omie_mes_apuesta['datetime'].min()
+    fecha_ini_entrega=df_omie_mes_apuesta['fecha'].min()
     #código para obtener el último dia del mes a partir de la fecha primer dia
     fecha_fin_entrega=(fecha_ini_entrega + pd.DateOffset(months = 1) - pd.DateOffset(days = 1)).date()
     #creamos un df con los dias del mes de entrega
-    df_rango_mes = pd.DataFrame({'datetime': pd.date_range(start=fecha_ini_entrega, end=fecha_fin_entrega)})
-    df_rango_mes['dia']=df_rango_mes['datetime'].dt.day
+    df_rango_mes = pd.DataFrame({'fecha': pd.date_range(start=fecha_ini_entrega, end=fecha_fin_entrega)})
+    df_rango_mes['dia']=df_rango_mes['fecha'].dt.day
     #df_omie_total_mes_select=df_rango_mes.merge(df_omie_mes_apuesta_select, on=['datetime','dia'], how='left')
     #ESTE DF ES EL QUE USAMOS PARA OBTENER EL LISTADO MVP VIRTUAL POR DIA
-    df_omie_total_mes=df_rango_mes.merge(df_omie_mes_apuesta, on=['datetime','dia'], how='left')
+    df_omie_total_mes=df_rango_mes.merge(df_omie_mes_apuesta, on=['fecha','dia'], how='left')
     
 
     #return df_ranking, df_ranking_styled, df_ranking_select, df_omie_total_mes, df_omie_total_mes_select, media_omie_select, virtual, virtual_select, df_ranking_powerrange
@@ -1164,12 +1263,12 @@ def omie_diario(df_omie_diario, entrega, omip_entrega):
         return None
     df_omie_diario_entrega = df_omie_diario[df_omie_diario['Entrega'] == entrega]
     #omie_entrega=round(df_omie_diario_entrega['omie'].mean(),2)
-    fecha_ini_entrega = df_omie_diario_entrega['datetime'].min()
+    fecha_ini_entrega = df_omie_diario_entrega['fecha'].min()
     #código para obtener el último dia del mes a partir de la fecha primer dia
     fecha_fin_entrega = (fecha_ini_entrega + pd.DateOffset(months = 1) - pd.DateOffset(days = 1)).date()
     #creamos un df con los dias del mes de entrega
-    df_rango_dias_entrega = pd.DataFrame({'datetime': pd.date_range(start = fecha_ini_entrega, end = fecha_fin_entrega)})
-    df_omie_diario_entrega_rango = df_rango_dias_entrega.merge(df_omie_diario_entrega, on = 'datetime', how = 'left')
+    df_rango_dias_entrega = pd.DataFrame({'fecha': pd.date_range(start = fecha_ini_entrega, end = fecha_fin_entrega)})
+    df_omie_diario_entrega_rango = df_rango_dias_entrega.merge(df_omie_diario_entrega, on = 'fecha', how = 'left')
     df_omie_diario_entrega_rango['omip'] = omip_entrega
 
     print ('df_omie_diario_entrega_rango')
