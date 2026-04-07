@@ -3,6 +3,7 @@ plotly.express
 #streamlit
 gspread
 google-auth
+google-api-python-client
 selenium
 streamlit_cookies_manager
 requests
