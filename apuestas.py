@@ -1299,7 +1299,7 @@ def obtener_datos_mes_anterior(df_FTB_mensual):
 
 
 # Código para enviar mails de notificación a los usuarios++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro):
+def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro, hoy_mañana):
     
     remitente = "jovidal71@gmail.com"
     contrasena = st.secrets['PASSWORD_GMAIL']
@@ -1344,7 +1344,7 @@ def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro):
         cuerpo_send = f"""\
         ¡Hola {nombre}!
 
-        Recuerda que hoy {ultimo_dia_registro} a las 23:59h se cierra el registro de predicciones para la #minipoweromie{mes}.
+        Recuerda que {hoy_mañana} {ultimo_dia_registro} a las 23:59h se cierra el registro de predicciones para la #minipoweromie{mes}.
 
         Si ya tienes registrada la predicción, todavía puedes modificarla hasta esa hora.
 
@@ -1373,11 +1373,13 @@ def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro):
         return False
 
 #cambiar a True manualmente de momento para enviar emails
-flag_envio = True
-#flag_envio = False
-mes = 'jun-26'
+#flag_envio = True
+flag_envio = False
+mes = 'jul-26'
 cuerpo = 'cuerpo1'
-ultimo_dia_registro = 'sábado 30 de mayo'
+ultimo_dia_registro = 'lunes 29 de junio'
+hoy_mañana = 'hoy'
+#hoy_mañana = 'mañana'
 
 if flag_envio:
     spreadsheet_id_users = st.secrets['ID_DRIVE_USERS']
@@ -1386,4 +1388,4 @@ if flag_envio:
     for _, fila in df_usuarios.iterrows():
         nombre=fila['nombre']
         email=fila['email']
-        flag = enviar_info(email, nombre, mes, cuerpo, ultimo_dia_registro)
+        flag = enviar_info(email, nombre, mes, cuerpo, ultimo_dia_registro, hoy_mañana)
