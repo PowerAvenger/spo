@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
+import math
 from apuestas import (
     autenticar_google_sheets, acceder_google_sheets,
     omie_diario, obtener_omie_diario, 
@@ -274,6 +276,94 @@ with tab2:
     st.dataframe(df_powerrange_styled, hide_index=True,use_container_width=True,
                 column_order=('posicion','nombre','apuesta','lim_inf','lim_sup','omie_inf','omie_sup')
                 )
+
+    # Distribución de las apuestas
+    st.subheader('Distribución de las apuestas', divider='rainbow')
+    apuestas_distribucion = df_powerrange[['nombre', 'apuesta']].copy()
+    apuestas_distribucion['apuesta'] = pd.to_numeric(apuestas_distribucion['apuesta'], errors='coerce')
+    apuestas_distribucion = apuestas_distribucion.dropna(subset=['apuesta'])
+
+    if apuestas_distribucion.empty:
+        st.info('No hay apuestas disponibles para representar.')
+    else:
+        media_apuestas = apuestas_distribucion['apuesta'].mean()
+        mediana_apuestas = apuestas_distribucion['apuesta'].median()
+        desviacion_apuestas = apuestas_distribucion['apuesta'].std(ddof=0)
+
+        col_media, col_mediana = st.columns(2)
+        col_media.metric('Media apuestas', f'{media_apuestas:.2f} €/MWh')
+        col_mediana.metric('Mediana apuestas', f'{mediana_apuestas:.2f} €/MWh')
+
+        num_bins = max(5, min(15, round(math.sqrt(len(apuestas_distribucion)))))
+        figura_distribucion = go.Figure()
+        figura_distribucion.add_trace(go.Histogram(
+            x=apuestas_distribucion['apuesta'],
+            nbinsx=num_bins,
+            histnorm='probability density',
+            name='Apuestas',
+            marker_color='#636EFA',
+            opacity=0.55,
+            hovertemplate='Apuesta: %{x:.2f} €/MWh<extra></extra>',
+        ))
+
+        if desviacion_apuestas > 0:
+            limite_inferior = min(
+                apuestas_distribucion['apuesta'].min(),
+                media_apuestas - 3 * desviacion_apuestas,
+            )
+            limite_superior = max(
+                apuestas_distribucion['apuesta'].max(),
+                media_apuestas + 3 * desviacion_apuestas,
+            )
+            paso = (limite_superior - limite_inferior) / 199
+            eje_x = [limite_inferior + paso * indice for indice in range(200)]
+            densidad = [
+                math.exp(-0.5 * ((valor - media_apuestas) / desviacion_apuestas) ** 2)
+                / (desviacion_apuestas * math.sqrt(2 * math.pi))
+                for valor in eje_x
+            ]
+            figura_distribucion.add_trace(go.Scatter(
+                x=eje_x,
+                y=densidad,
+                mode='lines',
+                name='Campana de Gauss',
+                line=dict(color='#00CC96', width=3),
+                hoverinfo='skip',
+            ))
+
+        figura_distribucion.add_vline(
+            x=media_apuestas,
+            line_color='#EF553B',
+            line_width=2,
+            annotation_text=f'Media: {media_apuestas:.2f}',
+            annotation_position='top left',
+        )
+        figura_distribucion.add_vline(
+            x=mediana_apuestas,
+            line_color='#AB63FA',
+            line_width=2,
+            line_dash='dash',
+            annotation_text=f'Mediana: {mediana_apuestas:.2f}',
+            annotation_position='top right',
+        )
+        figura_distribucion.add_trace(go.Scatter(
+            x=apuestas_distribucion['apuesta'],
+            y=[0] * len(apuestas_distribucion),
+            mode='markers',
+            name='Participantes',
+            text=apuestas_distribucion['nombre'],
+            marker=dict(color='#FFA15A', size=9, symbol='line-ns-open'),
+            hovertemplate='%{text}<br>%{x:.2f} €/MWh<extra></extra>',
+        ))
+        figura_distribucion.update_layout(
+            xaxis_title='Apuesta (€/MWh)',
+            yaxis_title='Densidad',
+            barmode='overlay',
+            hovermode='closest',
+            legend=dict(orientation='h', yanchor='bottom', y=1.12, xanchor='left', x=0),
+            margin=dict(t=90, b=40),
+        )
+        st.plotly_chart(figura_distribucion, use_container_width=True, key='distribucion_powerrange')
 
 
 
