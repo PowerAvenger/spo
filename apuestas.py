@@ -1375,9 +1375,9 @@ def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro, hoy_mañ
 #cambiar a True manualmente de momento para enviar emails
 #flag_envio = True
 flag_envio = False
-mes = 'sep-26'
-cuerpo = 'cuerpo2'
-ultimo_dia_registro = 'domingo 30 de agosto'
+mes = 'oct-26'
+cuerpo = 'cuerpo1'
+ultimo_dia_registro = 'martes 29 de septiembre'
 hoy_mañana = 'hoy'
 #hoy_mañana = 'mañana'
 
