@@ -346,6 +346,24 @@ with tab2:
             annotation_text=f'Mediana: {mediana_apuestas:.2f}',
             annotation_position='top right',
         )
+        if pd.notna(media_omie) and math.isfinite(float(media_omie)):
+            spot_omie = float(media_omie)
+            figura_distribucion.add_vline(
+                x=spot_omie,
+                line_color='#FFD700',
+                line_width=2,
+                annotation_text=f'Spot OMIE: {spot_omie:.2f} €/MWh',
+                annotation_position='top right',
+            )
+            # Incluir el spot en el eje aunque quede fuera de las apuestas.
+            figura_distribucion.add_trace(go.Scatter(
+                x=[spot_omie],
+                y=[0],
+                mode='markers',
+                marker=dict(opacity=0),
+                showlegend=False,
+                hoverinfo='skip',
+            ))
         figura_distribucion.add_trace(go.Scatter(
             x=apuestas_distribucion['apuesta'],
             y=[0] * len(apuestas_distribucion),
