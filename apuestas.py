@@ -1376,7 +1376,7 @@ def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro, hoy_mañ
 #flag_envio = True
 flag_envio = False
 mes = 'nov-26'
-cuerpo = 'cuerpo1'
+cuerpo = 'cuerpo2'
 ultimo_dia_registro = 'viernes 30 de octubre'
 hoy_mañana = 'hoy'
 #hoy_mañana = 'mañana'
