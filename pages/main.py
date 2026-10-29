@@ -72,9 +72,8 @@ meses_miniporra_invertidos = list(reversed(meses_miniporra))
 #print(meses_miniporra_invertidos)
 df_FTB_mensual, di_mesaño, li_entregas_2425, li_mesaño = obtener_meff_mensual()
 valores_omip_last3 = obtener_datos_mes_anterior(df_FTB_mensual)
-valores_omip = valores_omip_last3['Precio'].tolist()
-valores_omip = valores_omip[:len(meses_miniporra)]
-combo_omip = dict(zip(meses_miniporra, valores_omip))
+combo_omip = valores_omip_last3.set_index('Entrega')['Precio'].to_dict()
+valores_omip = [combo_omip.get(mes) for mes in meses_miniporra]
 
 print('combo omip')
 print(combo_omip)
@@ -530,7 +529,11 @@ with tab5:
     ##df_FTB_mensual, di_mesaño, li_entregas_2425, li_mesaño = obtener_meff_mensual(df_FTB)
     
     print(li_entregas_2425)
-    index_mes_porra = di_mesaño.get(st.session_state.mes_miniporra_select, 0) - 2
+    index_mes_porra = (
+        li_entregas_2425.index(st.session_state.mes_miniporra_select)
+        if st.session_state.mes_miniporra_select in li_entregas_2425
+        else max(len(li_entregas_2425) - 1, 0)
+    )
 
     st.info('En este apartado encontrarás información sobre OMIP y su evolución',icon="ℹ️")
     # seleccion del mes a visualiar la evolución de OMIP

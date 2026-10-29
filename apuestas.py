@@ -9,6 +9,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib
 import locale
+import re
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -1061,37 +1062,95 @@ def omie_mes_apuesta(df_omie_total_mes_select, media_omie, omie_max):
 
 
 #-------------------------------------------------------------------------------------------------
+MESES_MEFF = {
+    'jan': 'ene', 'feb': 'feb', 'mar': 'mar', 'apr': 'abr',
+    'may': 'may', 'jun': 'jun', 'jul': 'jul', 'aug': 'ago',
+    'sep': 'sep', 'oct': 'oct', 'nov': 'nov', 'dec': 'dic',
+    'ene': 'ene', 'abr': 'abr', 'ago': 'ago', 'dic': 'dic',
+}
+MESES_NUMERO = {
+    mes: numero for numero, mes in enumerate(
+        ('ene', 'feb', 'mar', 'abr', 'may', 'jun',
+         'jul', 'ago', 'sep', 'oct', 'nov', 'dic'), start=1
+    )
+}
+
+
+def normalizar_entrega_mensual_meff(entrega, codigo=''):
+    """Normaliza entregas antiguas y nuevas de MEFF al formato ``ene-27``."""
+    texto = str(entrega).strip().lower().replace('.', '')
+    coincidencia = re.fullmatch(r'([a-záéíóú]{3})-(\d{2})', texto)
+    if coincidencia:
+        mes = MESES_MEFF.get(coincidencia.group(1))
+        if mes:
+            return f'{mes}-{coincidencia.group(2)}'
+
+    # Durante una transición con datos mixtos, el código sigue conteniendo
+    # de forma inequívoca el mes y el año del contrato.
+    coincidencia = re.fullmatch(r'FTBCM([A-Z]{3})(\d{2})', str(codigo).strip().upper())
+    if coincidencia:
+        mes = MESES_MEFF.get(coincidencia.group(1).lower())
+        if mes:
+            return f'{mes}-{coincidencia.group(2)}'
+    return None
+
+
+def entrega_mensual_a_fecha(entrega):
+    texto = normalizar_entrega_mensual_meff(entrega)
+    if texto is None:
+        return pd.NaT
+    mes, año = texto.split('-')
+    return pd.Timestamp(2000 + int(año), MESES_NUMERO[mes], 1)
+
+
+def normalizar_precio_meff(precio):
+    """Reconstruye decimales perdidos al escribir el nuevo XLSX en Sheets."""
+    precio = pd.to_numeric(precio, errors='coerce')
+    if pd.isna(precio):
+        return np.nan
+    # Ejemplos reales de la hoja: 200.50 -> 2005 y 192.65 -> 19265. Si el
+    # XLSX termina en cero, Sheets pierde además ese cero al convertirlo.
+    if abs(precio) >= 10000:
+        return precio / 100
+    if abs(precio) >= 1000:
+        return precio / 10
+    return precio
+
+
 def obtener_meff_mensual():
-    
-    #df_FTB = obtener_FTB()
-
-    #filtramos por Periodo 'Mensual'
-    df_FTB_mensual = st.session_state.df_historicos_FTB[st.session_state.df_historicos_FTB['Cod.'].str.startswith('FTBCM')]
-    #hacemos copy del df
-    df_FTB_mensual = df_FTB_mensual.copy()
-
-    #RETURN: Lista con el mes-año tipo ene-24 obtenido de 'Entrega'
-    li_mesaño=df_FTB_mensual['Entrega'].unique().tolist()
-    #RETURN: Creamos un diccionario asociando el primer mes-año de la lista con 1 y así sucesivamente
-    di_mesaño={mes: idx for idx, mes in enumerate(li_mesaño,start=1)}
-    #print(di_mesaño)
-    #creamos columna de número de meses desde el primer mes de entrega hasta el último
-    df_FTB_mensual['Mes_Entrega']=df_FTB_mensual['Entrega'].map(di_mesaño)
-    #esto es para que el nombre del mes corto sea en castellano
-    locale.setlocale(locale.LC_TIME, 'es_ES')  # Para sistemas Windows
-    # Crear una nueva columna 'mes_año' con el formato 'mes-abreviado-año-corto'
+    historico = st.session_state.df_historicos_FTB
+    df_FTB_mensual = historico[
+        historico['Cod.'].astype(str).str.startswith('FTBCM')
+    ].copy()
+    df_FTB_mensual['Entrega'] = [
+        normalizar_entrega_mensual_meff(entrega, codigo)
+        for entrega, codigo in zip(df_FTB_mensual['Entrega'], df_FTB_mensual['Cod.'])
+    ]
+    df_FTB_mensual['Entrega_dt'] = df_FTB_mensual['Entrega'].map(entrega_mensual_a_fecha)
     df_FTB_mensual['Fecha'] = pd.to_datetime(df_FTB_mensual['Fecha'], errors='coerce')
-    df_FTB_mensual['Fecha_corta'] = df_FTB_mensual['Fecha'].dt.strftime('%b-%y').str.replace(r'\.', '', regex=True)
-    df_FTB_mensual['Precio']=pd.to_numeric(df_FTB_mensual['Precio'], errors='coerce')
-    #RETURN: Creamos otra columna tipo mes indexado pero esta vez para el mes año de la fecha de los datos
-    df_FTB_mensual['Mes_Fecha']=df_FTB_mensual['Fecha_corta'].map(di_mesaño)
+    df_FTB_mensual['Precio'] = df_FTB_mensual['Precio'].map(normalizar_precio_meff)
+    df_FTB_mensual = df_FTB_mensual.dropna(
+        subset=['Entrega', 'Entrega_dt', 'Fecha', 'Precio']
+    ).sort_values(['Entrega_dt', 'Fecha']).reset_index(drop=True)
 
-    print('df_FTB_mensual')        
-    print(df_FTB_mensual)
-    
-    #RETURN: Lista con 'Entrega' contiene '24', es decir, del año 2024  y 2025       
-    li_entregas_2425 = df_FTB_mensual[df_FTB_mensual['Entrega'].str.contains(r'24|25|26', na=False)]['Entrega'].unique().tolist()
-    
+    # Índices absolutos: la comparación no depende de que existan todos los
+    # contratos intermedios ni del orden en que Google Sheets devuelva filas.
+    df_FTB_mensual['Mes_Entrega'] = (
+        df_FTB_mensual['Entrega_dt'].dt.year * 12 + df_FTB_mensual['Entrega_dt'].dt.month
+    )
+    df_FTB_mensual['Mes_Fecha'] = (
+        df_FTB_mensual['Fecha'].dt.year * 12 + df_FTB_mensual['Fecha'].dt.month
+    )
+
+    entregas = df_FTB_mensual.drop_duplicates('Entrega').sort_values('Entrega_dt')
+    li_mesaño = entregas['Entrega'].tolist()
+    di_mesaño = dict(zip(entregas['Entrega'], entregas['Mes_Entrega']))
+    # Conservamos el nombre de retorno para no alterar sus consumidores, pero
+    # el rango ya es dinámico y admite 2027 y años posteriores.
+    li_entregas_2425 = entregas.loc[
+        entregas['Entrega_dt'] >= pd.Timestamp(2024, 1, 1), 'Entrega'
+    ].tolist()
+
     return df_FTB_mensual, di_mesaño, li_entregas_2425, li_mesaño
 
 
@@ -1286,12 +1345,15 @@ def obtener_datos_mes_anterior(df_FTB_mensual):
     #obtenemos la media de esos tres dias, por mes de entrega
     df_FTB_mensual_mes_anterior_last3 = df_FTB_mensual_mes_anterior_last3.groupby('Entrega', as_index=False)['Precio'].mean().round(2)
     ## ORDENAMOS CRONOLÓGICAMENTE POR MES DE ENTREGA TIPO ene-24, feb-24 ...
-    #lista de meses
-    months_order = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-    #convertimos 'Entrega' en categoría para poder ordenar
-    df_FTB_mensual_mes_anterior_last3['Entrega'] = pd.Categorical(df_FTB_mensual_mes_anterior_last3['Entrega'], categories=[f'{m}-{y}' for y in ['23', '24', '25','26'] for m in months_order], ordered=True)
-    #esta es la lista ordenada con los meses de entrega y la media de MEFF de los últimos tres dias
-    df_FTB_mensual_mes_anterior_last3_ordered = df_FTB_mensual_mes_anterior_last3.sort_values('Entrega').reset_index(drop=True)
+    df_FTB_mensual_mes_anterior_last3['Entrega_dt'] = (
+        df_FTB_mensual_mes_anterior_last3['Entrega'].map(entrega_mensual_a_fecha)
+    )
+    df_FTB_mensual_mes_anterior_last3_ordered = (
+        df_FTB_mensual_mes_anterior_last3
+        .sort_values('Entrega_dt')
+        .drop(columns='Entrega_dt')
+        .reset_index(drop=True)
+    )
     print('3 últimos valores OMIP mes anterior')
     print(df_FTB_mensual_mes_anterior_last3_ordered)
     return df_FTB_mensual_mes_anterior_last3_ordered
@@ -1376,7 +1438,7 @@ def enviar_info(destinatario, nombre, mes, cuerpo, ultimo_dia_registro, hoy_mañ
 #flag_envio = True
 flag_envio = False
 mes = 'nov-26'
-cuerpo = 'cuerpo2'
+cuerpo = 'cuerpo3'
 ultimo_dia_registro = 'viernes 30 de octubre'
 hoy_mañana = 'hoy'
 #hoy_mañana = 'mañana'
